@@ -10,15 +10,17 @@ python -m venv venv
 venv\Scripts\activate
 4. Установить зависимости
 pip install -r requirements.txt
-5. Применить миграции
+5. Создать миграции
+python manage.py makemigrations antifraud
+6. Применить миграции
 python manage.py migrate
-6. Загрузить тестовые данные
+7. Загрузить тестовые данные
 python manage.py loaddata antifraud/fixtures/initial_data.json
-7. Создать суперпользователя (для админки)
+8. Создать суперпользователя (для админки)
 python manage.py createsuperuser
-8. Запустить сервер
+9. Запустить сервер
 python manage.py runserver
-9. Открыть в браузере
+10. Открыть в браузере
 - Вход: http://127.0.0.1:8000/
 - Админка: http://127.0.0.1:8000/admin/
 
