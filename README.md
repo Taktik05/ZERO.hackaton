@@ -37,6 +37,7 @@ python manage.py runserver
 - Шквал транзакций
 - Новое устройство
 - Кофейный лимит
+
 🛠 Технологии
 - Django + DRF
 - Bootstrap 5
