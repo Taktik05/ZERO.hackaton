@@ -5,24 +5,20 @@ Zero – Антифрод система на правилах
 1. Клонировать репозиторий
 git clone https://github.com/Taktik05/ZERO.hackaton.git
 cd ZERO.hackaton
-2. Создать и активировать виртуальное окружение
+3. Создать и активировать виртуальное окружение
 python -m venv venv
-
 venv\Scripts\activate
-3. Установить зависимости
-
+4. Установить зависимости
 pip install -r requirements.txt
-4. Применить миграции
-
+5. Применить миграции
 python manage.py migrate
-5. Загрузить тестовые данные
-
-python manage.py loaddata core/fixtures/initial_data.json
-6. Создать суперпользователя (для админки)
+6. Загрузить тестовые данные
+python manage.py loaddata antifraud/fixtures/initial_data.json
+7. Создать суперпользователя (для админки)
 python manage.py createsuperuser
-7. Запустить сервер
+8. Запустить сервер
 python manage.py runserver
-8. Открыть в браузере
+9. Открыть в браузере
 - Вход: http://127.0.0.1:8000/
 - Админка: http://127.0.0.1:8000/admin/
 
