@@ -1,0 +1,50 @@
+[
+  {
+    "model": "antifraud.fraudrule",
+    "pk": 1,
+    "fields": {
+      "code": "HIGH_AMOUNT",
+      "name": "High amount threshold",
+      "description": "Trigger when transaction amount is greater than or equal to threshold.",
+      "score": 30,
+      "threshold_decimal": "1000.00",
+      "is_active": true
+    }
+  },
+  {
+    "model": "antifraud.fraudrule",
+    "pk": 2,
+    "fields": {
+      "code": "FOREIGN_COUNTRY",
+      "name": "Foreign country check",
+      "description": "Trigger when transaction country differs from home country US.",
+      "score": 15,
+      "threshold_decimal": "0.00",
+      "is_active": true
+    }
+  },
+  {
+    "model": "antifraud.fraudrule",
+    "pk": 3,
+    "fields": {
+      "code": "VELOCITY",
+      "name": "Card velocity check",
+      "description": "Trigger when there are 3 or more recent transactions in the lookback window.",
+      "score": 25,
+      "threshold_decimal": "10.00",
+      "is_active": true
+    }
+  },
+  {
+    "model": "antifraud.fraudrule",
+    "pk": 4,
+    "fields": {
+      "code": "DISPOSABLE_EMAIL",
+      "name": "Disposable email domain",
+      "description": "Trigger when email domain belongs to disposable providers list.",
+      "score": 20,
+      "threshold_decimal": "0.00",
+      "is_active": true
+    }
+  }
+]

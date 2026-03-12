@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Транзакция — Zero{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Карточка транзакции</h1>
+    <a class="btn btn-outline-secondary" href="{% url 'antifraud:transaction-list' %}">К списку</a>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <span class="fw-semibold">{{ transaction.external_id }}</span>
+                {% if transaction.status == "APPROVED" %}
+                    <span class="badge text-bg-success">{{ transaction.get_status_display }}</span>
+                {% elif transaction.status == "DECLINED" %}
+                    <span class="badge text-bg-danger">{{ transaction.get_status_display }}</span>
+                {% elif transaction.status == "MANUAL_REVIEW" %}
+                    <span class="badge text-bg-warning">{{ transaction.get_status_display }}</span>
+                {% else %}
+                    <span class="badge text-bg-secondary">{{ transaction.get_status_display }}</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Сумма</dt>
+                    <dd class="col-sm-7">{{ transaction.amount }} {{ transaction.currency }}</dd>
+
+                    <dt class="col-sm-5">Карта</dt>
+                    <dd class="col-sm-7">{{ transaction.masked_card }}</dd>
+
+                    <dt class="col-sm-5">Клиент</dt>
+                    <dd class="col-sm-7">{{ transaction.card_holder }}</dd>
+
+                    <dt class="col-sm-5">Email</dt>
+                    <dd class="col-sm-7">{{ transaction.email }}</dd>
+
+                    <dt class="col-sm-5">IP</dt>
+                    <dd class="col-sm-7">{{ transaction.ip_address }}</dd>
+
+                    <dt class="col-sm-5">Страна</dt>
+                    <dd class="col-sm-7">{{ transaction.country }}</dd>
+
+                    <dt class="col-sm-5">Risk score</dt>
+                    <dd class="col-sm-7">{{ transaction.risk_score }}</dd>
+
+                    <dt class="col-sm-5">Причина</dt>
+                    <dd class="col-sm-7">{{ transaction.decision_reason|default:"—" }}</dd>
+
+                    <dt class="col-sm-5">Подтверждена клиентом</dt>
+                    <dd class="col-sm-7">{% if transaction.is_client_confirmed %}Да{% else %}Нет{% endif %}</dd>
+                </dl>
+            </div>
+            <div class="card-footer bg-white">
+                {% if transaction.status != "DECLINED" and not transaction.is_client_confirmed %}
+                    <form method="post" action="{% url 'antifraud:transaction-confirm' transaction.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-warning">Подтвердить транзакцию</button>
+                    </form>
+                {% elif transaction.status == "DECLINED" %}
+                    <span class="text-danger">Транзакция отклонена и не может быть подтверждена.</span>
+                {% else %}
+                    <span class="text-success">Транзакция уже подтверждена.</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">Результаты проверки правил</div>
+            <ul class="list-group list-group-flush">
+                {% for result in transaction.rule_results.all %}
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ result.rule_code }}</strong>
+                            {% if result.is_triggered %}
+                                <span class="badge text-bg-danger">TRIGGERED</span>
+                            {% else %}
+                                <span class="badge text-bg-success">PASSED</span>
+                            {% endif %}
+                        </div>
+                        <div class="small text-muted mt-1">{{ result.message }}</div>
+                        <div class="small">+{{ result.score_delta }} risk</div>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted">Нет результатов проверок.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

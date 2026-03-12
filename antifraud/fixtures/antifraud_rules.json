@@ -1,0 +1,50 @@
+[
+  {
+    "model": "antifraud.fraudrule",
+    "pk": 1,
+    "fields": {
+      "code": "HIGH_AMOUNT",
+      "name": "Высокая сумма операции",
+      "description": "Срабатывает, когда сумма транзакции равна или выше порогового значения.",
+      "score": 30,
+      "threshold_decimal": "1000.00",
+      "is_active": true
+    }
+  },
+  {
+    "model": "antifraud.fraudrule",
+    "pk": 2,
+    "fields": {
+      "code": "FOREIGN_COUNTRY",
+      "name": "Иностранная страна",
+      "description": "Срабатывает, когда страна транзакции отличается от домашней страны US.",
+      "score": 15,
+      "threshold_decimal": "0.00",
+      "is_active": true
+    }
+  },
+  {
+    "model": "antifraud.fraudrule",
+    "pk": 3,
+    "fields": {
+      "code": "VELOCITY",
+      "name": "Частые операции по карте",
+      "description": "Срабатывает, когда по карте обнаружено 3 и более недавних транзакций за окно в минутах.",
+      "score": 25,
+      "threshold_decimal": "10.00",
+      "is_active": true
+    }
+  },
+  {
+    "model": "antifraud.fraudrule",
+    "pk": 4,
+    "fields": {
+      "code": "DISPOSABLE_EMAIL",
+      "name": "Временный email-домен",
+      "description": "Срабатывает при использовании email из списка одноразовых доменов.",
+      "score": 20,
+      "threshold_decimal": "0.00",
+      "is_active": true
+    }
+  }
+]
