@@ -1,0 +1,118 @@
+[
+  {
+    "model": "antifraud.fraudrule",
+    "pk": 1,
+    "fields": {
+      "code": "night_spending",
+      "name": "Ночные траты",
+      "description": "Транзакции в ночное время (после 23:00)",
+      "score": 30,
+      "threshold_decimal": "0.00",
+      "is_active": true,
+      "created_at": "2026-03-12T10:00:00Z",
+      "updated_at": "2026-03-12T10:00:00Z"
+    }
+  },
+  {
+    "model": "antifraud.fraudrule",
+    "pk": 2,
+    "fields": {
+      "code": "unusual_location",
+      "name": "Необычная география",
+      "description": "Транзакция из страны, отличной от обычной",
+      "score": 40,
+      "threshold_decimal": "0.00",
+      "is_active": true,
+      "created_at": "2026-03-12T10:00:00Z",
+      "updated_at": "2026-03-12T10:00:00Z"
+    }
+  },
+  {
+    "model": "antifraud.fraudrule",
+    "pk": 3,
+    "fields": {
+      "code": "amount_surge",
+      "name": "Скачок суммы",
+      "description": "Сумма транзакции превышает порог",
+      "score": 50,
+      "threshold_decimal": "50000.00",
+      "is_active": true,
+      "created_at": "2026-03-12T10:00:00Z",
+      "updated_at": "2026-03-12T10:00:00Z"
+    }
+  },
+  {
+    "model": "antifraud.transaction",
+    "pk": 1,
+    "fields": {
+      "external_id": "123e4567-e89b-12d3-a456-426614174000",
+      "amount": "350.00",
+      "currency": "RUB",
+      "card_number": "4111111111111111",
+      "card_holder": "IVAN PETROV",
+      "email": "ivan@example.com",
+      "ip_address": "192.168.1.1",
+      "country": "RU",
+      "device_id": "iphone12",
+      "merchant_id": "merchant_001",
+      "status": "APPROVED",
+      "risk_score": 10,
+      "decision_reason": "Низкий риск",
+      "is_client_confirmed": true,
+      "confirmed_at": "2026-03-12T14:35:00Z",
+      "created_at": "2026-03-12T14:30:00Z",
+      "updated_at": "2026-03-12T14:35:00Z"
+    }
+  },
+  {
+    "model": "antifraud.transaction",
+    "pk": 2,
+    "fields": {
+      "external_id": "223e4567-e89b-12d3-a456-426614174001",
+      "amount": "50000.00",
+      "currency": "RUB",
+      "card_number": "4111111111111111",
+      "card_holder": "IVAN PETROV",
+      "email": "ivan@example.com",
+      "ip_address": "197.210.1.1",
+      "country": "NG",
+      "device_id": "unknown_android",
+      "merchant_id": "merchant_002",
+      "status": "MANUAL_REVIEW",
+      "risk_score": 75,
+      "decision_reason": "Подозрительная транзакция",
+      "is_client_confirmed": false,
+      "confirmed_at": null,
+      "created_at": "2026-03-13T02:15:00Z",
+      "updated_at": "2026-03-13T02:15:00Z"
+    }
+  },
+  {
+    "model": "antifraud.rulecheckresult",
+    "pk": 1,
+    "fields": {
+      "transaction": 2,
+      "rule": 1,
+      "rule_code": "night_spending",
+      "is_triggered": true,
+      "score_delta": 30,
+      "message": "Транзакция в ночное время",
+      "details": {},
+      "created_at": "2026-03-13T02:15:10Z"
+    }
+  },
+  {
+    "model": "antifraud.rulecheckresult",
+    "pk": 2,
+    "fields": {
+      "transaction": 2,
+      "rule": 2,
+      "rule_code": "unusual_location",
+      "is_triggered": true,
+      "score_delta": 40,
+      "message": "Страна NG не соответствует обычной RU",
+      "details": {},
+      "created_at": "2026-03-13T02:15:10Z"
+    }
+  }
+]
