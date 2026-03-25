@@ -88,7 +88,7 @@ class RuleEngine:
         )
 
     def _check_foreign_country(self, transaction: Transaction, rule: FraudRule | None) -> RuleEvaluation:
-        allowed_country = "US"
+        allowed_country = "RU"
         score = int(rule.score if rule else 15)
         triggered = transaction.country.upper() != allowed_country
         return RuleEvaluation(
