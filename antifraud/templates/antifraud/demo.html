@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block title %}Zero — демонстрация антифрода{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <h1 class="h3 mb-1">Zero — демонстрация антифрода</h1>
+        <p class="text-muted mb-0">Домашняя страна: <strong>Россия (RU)</strong></p>
+    </div>
+    <button id="generate-transaction-btn" class="btn btn-primary" type="button">
+        Случайная транзакция
+    </button>
+</div>
+
+<div id="alert-container" class="mb-3"></div>
+
+<div id="transactions-container" class="row g-3"></div>
+
+<input id="csrf-token" type="hidden" value="{{ csrf_token }}">
+{% endblock %}
+
+{% block scripts %}
+<script>
+    (function () {
+        "use strict";
+
+        const HOME_COUNTRY = "RU";
+        const INGEST_URL = "/api/ingest/";
+
+        const generateButton = document.getElementById("generate-transaction-btn");
+        const transactionsContainer = document.getElementById("transactions-container");
+        const alertContainer = document.getElementById("alert-container");
+        const csrfToken = document.getElementById("csrf-token").value;
+
+        /**
+         * Безопасно экранирует пользовательские значения для вставки в HTML-шаблоны.
+         */
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        /**
+         * Показывает bootstrap-уведомление без innerHTML-инъекций.
+         */
+        function showAlert(message, level = "danger") {
+            const wrapper = document.createElement("div");
+            wrapper.className = `alert alert-${level} alert-dismissible fade show`;
+            wrapper.role = "alert";
+
+            const text = document.createElement("span");
+            text.textContent = message;
+
+            const closeButton = document.createElement("button");
+            closeButton.type = "button";
+            closeButton.className = "btn-close";
+            closeButton.setAttribute("data-bs-dismiss", "alert");
+            closeButton.setAttribute("aria-label", "Закрыть");
+
+            wrapper.append(text, closeButton);
+            alertContainer.prepend(wrapper);
+        }
+
+        function randomChoice(items) {
+            return items[Math.floor(Math.random() * items.length)];
+        }
+
+        function randomInteger(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function randomPublicIpV4() {
+            const firstOctet = randomInteger(1, 223);
+            const secondOctet = randomInteger(0, 255);
+            const thirdOctet = randomInteger(0, 255);
+            const fourthOctet = randomInteger(1, 254);
+            return `${firstOctet}.${secondOctet}.${thirdOctet}.${fourthOctet}`;
+        }
+
+        function randomAmount() {
+            const isLowAmount = Math.random() < 0.7;
+            if (isLowAmount) {
+                return randomInteger(10, 900);
+            }
+            return randomInteger(1000, 10000);
+        }
+
+        function randomEmail() {
+            const isMainEmail = Math.random() < 0.85;
+            if (isMainEmail) {
+                return "user@example.com";
+            }
+            const randomPrefix = Math.random().toString(36).slice(2, 10);
+            return `${randomPrefix}@temp-mail.org`;
+        }
+
+        function randomCountry() {
+            const isHomeCountry = Math.random() < 0.7;
+            if (isHomeCountry) {
+                return HOME_COUNTRY;
+            }
+            return randomChoice(["NG", "KZ", "UA", "US"]);
+        }
+
+        function randomTransaction() {
+            const country = randomCountry();
+
+            return {
+                amount: randomAmount(),
+                currency: "RUB",
+                card_number: "4111111111111111",
+                card_holder: "Demo User",
+                email: randomEmail(),
+                ip_address: country === HOME_COUNTRY ? "5.45.207.0" : randomPublicIpV4(),
+                country,
+                device_id: "demo_device",
+                merchant_id: "demo_merchant"
+            };
+        }
+
+        function riskBadgeClass(riskScore) {
+            if (riskScore < 40) {
+                return "text-bg-success";
+            }
+            if (riskScore <= 70) {
+                return "text-bg-warning";
+            }
+            return "text-bg-danger";
+        }
+
+        function cardBorderClass(riskScore) {
+            if (riskScore < 40) {
+                return "border-success";
+            }
+            if (riskScore <= 70) {
+                return "border-warning";
+            }
+            return "border-danger";
+        }
+
+        /**
+         * Универсально парсит ответ API:
+         * - если JSON, пытается декодировать;
+         * - если HTML/текст, возвращает сырой текст без падения JSON.parse.
+         */
+        async function parseApiResponse(response) {
+            const contentType = (response.headers.get("content-type") || "").toLowerCase();
+            const rawText = await response.text();
+            const isJson = contentType.includes("application/json");
+
+            if (!isJson) {
+                return { data: null, rawText, isJson: false };
+            }
+
+            if (!rawText) {
+                return { data: {}, rawText, isJson: true };
+            }
+
+            try {
+                return { data: JSON.parse(rawText), rawText, isJson: true };
+            } catch (error) {
+                return { data: null, rawText, isJson: false };
+            }
+        }
+
+        function sanitizeServerText(rawText) {
+            const withoutTags = rawText.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+            return withoutTags.slice(0, 200);
+        }
+
+        function extractErrorText(response, parsed, fallbackLabel) {
+            if (parsed.data && typeof parsed.data === "object") {
+                if (typeof parsed.data.detail === "string" && parsed.data.detail.trim()) {
+                    return parsed.data.detail;
+                }
+                const serialized = JSON.stringify(parsed.data);
+                if (serialized && serialized !== "{}") {
+                    return serialized;
+                }
+            }
+
+            if (parsed.rawText) {
+                const safeText = sanitizeServerText(parsed.rawText);
+                if (safeText) {
+                    return `${safeText} (HTTP ${response.status})`;
+                }
+            }
+
+            return `${fallbackLabel} (HTTP ${response.status})`;
+        }
+
+        function createTransactionCard(transaction) {
+            const col = document.createElement("div");
+            col.className = "col-12 col-lg-6";
+
+            const card = document.createElement("div");
+            card.className = `card shadow-sm border-2 ${cardBorderClass(transaction.risk_score)}`;
+
+            const cardBody = document.createElement("div");
+            cardBody.className = "card-body";
+
+            const badgeClass = riskBadgeClass(transaction.risk_score);
+            cardBody.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+                    <h2 class="h5 mb-0">Транзакция #${escapeHtml(transaction.id)}</h2>
+                    <span class="badge ${badgeClass}">Риск: ${escapeHtml(transaction.risk_score)}</span>
+                </div>
+                <ul class="list-unstyled mb-3">
+                    <li><strong>Сумма:</strong> ${escapeHtml(transaction.amount)} RUB</li>
+                    <li><strong>Страна:</strong> ${escapeHtml(transaction.country)}</li>
+                    <li><strong>Email:</strong> ${escapeHtml(transaction.email)}</li>
+                </ul>
+            `;
+
+            if (transaction.risk_score > 40) {
+                const confirmButton = document.createElement("button");
+                confirmButton.type = "button";
+                confirmButton.className = "btn btn-outline-danger btn-sm";
+                confirmButton.textContent = "Подтвердить";
+                confirmButton.addEventListener("click", async function () {
+                    confirmButton.disabled = true;
+                    confirmButton.textContent = "Подтверждение...";
+
+                    try {
+                        const confirmedTransaction = await confirmTransaction(transaction.id);
+                        card.classList.remove("border-warning", "border-danger");
+                        card.classList.add("border-success");
+
+                        const badge = card.querySelector(".badge");
+                        if (badge) {
+                            badge.classList.remove("text-bg-warning", "text-bg-danger");
+                            badge.classList.add("text-bg-success");
+                            badge.textContent = `Риск: ${confirmedTransaction.risk_score}`;
+                        }
+
+                        const hint = document.createElement("p");
+                        hint.className = "text-success small mb-0 mt-2";
+                        hint.textContent = "Подтверждено клиентом. Карточка будет скрыта через 2 секунды.";
+                        cardBody.append(hint);
+
+                        setTimeout(function () {
+                            col.remove();
+                        }, 2000);
+                    } catch (error) {
+                        showAlert(error.message || "Не удалось подтвердить транзакцию.");
+                        confirmButton.disabled = false;
+                        confirmButton.textContent = "Подтвердить";
+                    }
+                });
+                cardBody.append(confirmButton);
+            }
+
+            card.append(cardBody);
+            col.append(card);
+            transactionsContainer.prepend(col);
+        }
+
+        async function sendTransaction(data) {
+            const response = await fetch(INGEST_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken
+                },
+                credentials: "same-origin",
+                body: JSON.stringify(data)
+            });
+
+            const parsed = await parseApiResponse(response);
+            if (!response.ok) {
+                const errorText = extractErrorText(response, parsed, "Ошибка отправки транзакции");
+                throw new Error(`Ошибка отправки транзакции: ${errorText}`);
+            }
+
+            return parsed.data;
+        }
+
+        async function confirmTransaction(transactionId) {
+            const response = await fetch(`/api/confirm/${transactionId}/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken
+                },
+                credentials: "same-origin",
+                body: JSON.stringify({ confirmation: true })
+            });
+
+            const parsed = await parseApiResponse(response);
+            if (!response.ok) {
+                const errorText = extractErrorText(response, parsed, "Ошибка подтверждения");
+                throw new Error(`Ошибка подтверждения: ${errorText}`);
+            }
+
+            return parsed.data;
+        }
+
+        generateButton.addEventListener("click", async function () {
+            generateButton.disabled = true;
+            generateButton.textContent = "Генерация...";
+
+            try {
+                const transactionData = randomTransaction();
+                const transaction = await sendTransaction(transactionData);
+                createTransactionCard(transaction);
+            } catch (error) {
+                showAlert(error.message || "Ошибка при создании транзакции.");
+            } finally {
+                generateButton.disabled = false;
+                generateButton.textContent = "Случайная транзакция";
+            }
+        });
+    })();
+</script>
+{% endblock %}
